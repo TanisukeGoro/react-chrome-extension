@@ -1,68 +1,126 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# ReactでChrome拡張機能をビルドする方法を模索する
 
-## Available Scripts
+エンジニアの皆さんなら一度は作ったことがあるはずのChrome拡張機能でもっと高度なアプリを作りたい。  
 
-In the project directory, you can run:
+## 背景
 
-### `yarn start`
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Chrome拡張機能は`Javascript`のみで作成することが可能(必要に応じて`HTML`, `CSS`)でブラウザにちょっとした機能をつけることができる  
+そしてデプロイも五百円でかつ容易なため成果の見えやすいものになる。  
+これらを作り上げるにはDOMの概念や比較的高度なJavscriptの操作が要求されるためプログラミング初学者の学習に最適だと考えている。  
+Chrome拡張機能の開発はプログラミング初学者にとって非常に強力な学習方法だと考えられます。  
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+一方で、Chrome拡張機能を開発する上では拡張機能独自の機能を利用したり、制限の中で開発する必要があるほか、Javascriptを用いてDOMを操作する必要が生じるため、一朝一夕にはうまくいかないものです。  
 
-### `yarn test`
+特にみているWebページに拡張機能で別の表示をする場合などにはDOM自体を正確に制御する必要がありそれがなかなか難しいものです。  
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+そこでReactやVueなどの仮想DOMを用いることで非常にかんんたんに操作してみたいと考えます。  
 
-### `yarn build`
+## Reactアプリの導入
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+まず任意のディレクトリを作成して、Reactアプリを生成します。  
+Reactのアプリは`npx`を用いて簡単にテンプレートの生成を行うことが可能です。  
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash  
+npx create-react-app extension_app  
+```  
 
-### `yarn eject`
+生成された`extension_app`ディレクトリに移動し、Reactアプリをビルドします。  
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```  
+yarn build (or npm run build)  
+```  
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+すると`build`ディレクトリが生成されるので、`build/index.html`をブラウザで開きます。  
+するとReactのページが表示されうまくビルドが完了しているかと思います。  
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 拡張機能への第一歩
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Chrome拡張機能を開発する上でもっとも重要になるのが`manifest.json`の存在です。  
+拡張機能の役割や詳細な情報は`manifest.json`によりブラウザに認識させ、ブラウザは拡張機能としてパッケージを読み込みます。  
 
-## Learn More
+`public/manifest.json`を以下のように編集してみます。  
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```  
+{
+  "manifest_version": 2,  
+  "name": "React Chrome Extension",  
+  "version": "0.0.1",  
+  "browser_action": {  
+    "default_icon": "logo192.png",  
+    "default_popup": "index.html"  
+  },  
+  "content_security_policy": "script-src 'self' 'sha256-GgRxrVOKNdB4LrRsVPDSbzvfdV4UqglmviH9GoBJ5jk='; object-src 'self'"  
+}
+```  
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+そして再び`yarn build`とすれば良いのですが、Reactアプリのデフォルトでは、実行中に小さなランタイムスクリプトを`index.html`に埋め込みます。  
+これはHTTPリクエストの数を減らすためなのですが、Chrome拡張機能ではCSPに違反するためエラーが生じてしまします。  
+これを回避するためにビルド時の設定を変更します。  
+そして、`packege.json`のscriptsに次のように記述を変更します  
 
-### Code Splitting
+```json  
+ // "build": "react-scripts build",  
+"build": "INLINE_RUNTIME_CHUNK=false react-scripts build"  
+```  
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+これができたら`yarn build`として生成した`build`をChrome拡張機能に読み込ませます。  
+表示されたアイコンをクリックするとreactのアプリが表示されるはずです！  
+これで拡張機能の`popup`をReactを使って作ることができました。  
 
-### Analyzing the Bundle Size
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+## Webサイト上でReactを動かす
 
-### Making a Progressive Web App
+Chrome拡張機能では閲覧しているWebサイト自体を操作したり、新たにパネルを表示させたりすることも可能です。  
+しかしここで問題になるのが、先ほどビルドしたReactアプリは`index.html`をエントリーポイントとして、それ以外のJSファイルはビルドするたびにファイルめいが変更されることです。  
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+`index.html`だと基本的に`popup page`のみでしか動作しない上、毎回ファイルの名前を`manifest.json`に記述する必要が出るからです。  
+これは`create-react-app`を用いてReactアプリを生成しているためwebpackのセットも内蔵されており変更することはできません。  
 
-### Advanced Configuration
+この回避策として、`yarn run eject`を用いる方法があります。  
+`yarn run eject`を用いることで`create-react-app`の管理から抜け出してnode_modules以下に必要なモジュールが全てインストールされ、単独でビルド可能になります。  
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+### Reactのビルド設定を変更する
 
-### Deployment
+まず、gitでcommitしてから`yarn run eject`を実行し`yarn install`を実行  
+すると`/build`が生成されてちゃんとビルドされているはず。  
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+`yarn run eject`を実行した際に`/config`と`/scripts`のフォルダにそれぞれJSファイルがいくつか生成されていると思います。  
+このこの中の`/config/webpack.config.js`を開いて該当部分を編集します。
 
-### `yarn build` fails to minify
+```javascript
+// These are the "entry points" to our application.
+// This means they will be the "root" imports that are included in JS bundle.
+entry: { // このentryオブジェクトの中身を変更する
+  main: [paths.appIndexJs],
+  content: ['./src/content.js']
+},
+/** 中略 */
+// ここで Runtimeを
+runtimeChunk: false // オブジェクトをfalseに変更
+```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+> [Make extension compatible with Create React App v2.x · Issue #2 · satendra02/react-chrome-extension · GitHub](https://github.com/satendra02/react-chrome-extension/issues/2#issuecomment-559533252)
+
+次に、Reactをビルドする際にwebpackはデフォルトで出力するファイル名にハッシュ(リビジョン)を付与します。  
+これはファイル名をビルドするごとに変化させることで、ブラウザがキャッシュを読み込んで変更が反映されない問題を回避するためだそうです。
+> [webpack@4 で出力するファイルをリビジョン管理する](https://numb86-tech.hatenablog.com/entry/2018/11/03/122201)
+
+
+さらにここでビルドするために`.env`ファイルをルートディレクトリに作成して以下のように書き加えます。
+
+```bash
+# /.env
+NODE_ENV=development
+PUBLIC_URL=./
+```
+
+そして`yarn build`を実行します。
+
+
+ 
+> 参考文献  
+> `/config/webpack.config.js`あたりの話で参考になった  
+>  [Create chrome extension with ReactJs using inject page strategy](https://itnext.io/create-chrome-extension-with-reactjs-using-inject-page-strategy-137650de1f39)  
+> [Make extension compatible with Create React App v2.x · Issue #2 · satendra02/react-chrome-extension · GitHub](https://github.com/satendra02/react-chrome-extension/issues/2#issuecomment-559533252)

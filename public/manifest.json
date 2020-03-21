@@ -6,12 +6,16 @@
     "default_icon": "logo192.png",
     "default_popup": "index.html"
   },
+  "background": {
+    "scripts": ["/static/js/background.js"]
+  },
   "content_security_policy": "script-src 'self' 'sha256-GgRxrVOKNdB4LrRsVPDSbzvfdV4UqglmviH9GoBJ5jk='; object-src 'self'",
   "content_scripts" : [
     {
       "matches": [ "<all_urls>" ],
-      "css": ["/static/css/app.css", "/static/css/content.css"],
-      "js": ["/static/js/content.js"]
+      "css": ["/static/css/content.css"],
+      "js": ["/static/js/3.chunk.js", "/static/js/content.js", "/static/js/main.js"]
     }
-]
+  ],
+  "web_accessible_resources": [ "static/*.*"]
 }

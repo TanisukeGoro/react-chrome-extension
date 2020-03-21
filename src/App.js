@@ -1,13 +1,14 @@
 import React from 'react';
 import logo from './logo.svg';
+import ExtensionService from './libs/extensionService'
 import './App.css';
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
+        <img src={ExtensionService.getResourceUrl(logo)} className="App-logo" alt="logo" />
+        <p className="App-p">
           Edit <code>src/App.js</code> and save to reload.
         </p>
         <a
