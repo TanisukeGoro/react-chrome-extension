@@ -1,7 +1,13 @@
 import React from 'react';
 import logo from './logo.svg';
 import ExtensionService from './libs/extensionService'
-import './App.css';
+import './styles/App.css';
+
+
+const locationJump = ()=> {
+  window.location.href = "https://google.com"
+}
+
 
 function App() {
   return (
@@ -19,6 +25,7 @@ function App() {
         >
           Learn React
         </a>
+        <button onClick={locationJump}>別のページにいく</button>
       </header>
     </div>
   );
